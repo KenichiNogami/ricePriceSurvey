@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>白米5kg価格調査</title>
+    <link rel="icon" type="image/png" href="./onigiri.ico" sizes="32x32">
+    <!-- OGP基本設定 -->
+<meta property="og:title" content="お米価格調査アプリ" />
+<meta property="og:description" content="コメの安売り情報を共有して、みんなで価格を下げよう！" />
+<meta property="og:image" content="https://medicalhealth.blob.core.windows.net/medicalhealth/ogp.png" />
+<meta property="og:url" content="https://medicalhealth.blob.core.windows.net/medicalhealth/ricesurvey.html" />
+<meta property="og:type" content="website" />
+
+<!-- Twitterカード対応（オプション） -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="お米価格調査アプリ" />
+<meta name="twitter:description" content="安売り情報をみんなで投稿して、コメの価格を動かそう！" />
+<meta name="twitter:image" content="https://medicalhealth.blob.core.windows.net/medicalhealth/ogp.png" />
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            background-color: #f8f9fa;
+        }
+        .survey-container {
+            max-width: 960px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+        .survey-result {
+            margin-top: 2rem;
+            min-height: 200px;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .rice-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .option-tags {
+            margin-top: 1rem;
+        }
+        .option-tag {
+            display: inline-block;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option-tag.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+        /* テーブル関連のスタイルを強化 */
+        .table {
+            width: 100%;
+            margin-bottom: 1rem;
+            border-collapse: collapse;
+        }
+        .table th, .table td {
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+        }
+        .table thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+        }
+        .table tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        .table-responsive {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .source-info {
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container survey-container">
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <h1 class="mb-4">白米5kg価格サーチ</h1>
+                <p class="lead">
+                    最新の白米5kg価格情報を調査するサービスです。<br>
+                    様々な銘柄の価格や関税情報を調べることができます。
+                </p>
+                <p>あなたのご存じな価格情報をX（旧Twitter)などに書き込みください。安売りの価格情報を共有することにより、売り惜しみや買い溜めにプレッシャーをかけて、コメの適正価格を実現しましょう。</p> 
+            </div>
+            <div class="col-lg-4">
+                <img src="./onigiri.jpg" class="rice-image" alt="米の画像">
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="surveyTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="initial-survey-tab" data-bs-toggle="tab" data-bs-target="#initial-survey" type="button" role="tab" aria-controls="initial-survey" aria-selected="true">価格調査</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="additional-questions-tab" data-bs-toggle="tab" data-bs-target="#additional-questions" type="button" role="tab" aria-controls="additional-questions" aria-selected="false">追加質問</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="surveyTabContent">
+                            <!-- 価格調査タブ -->
+                            <div class="tab-pane fade show active" id="initial-survey" role="tabpanel" aria-labelledby="initial-survey-tab">
+                                <form id="initialSurveyForm">
+                                    <div class="mb-3">
+                                        <label for="initialSurveyInput" class="form-label">調査内容 (オプション)</label>
+                                        <textarea class="form-control" id="initialSurveyInput" rows="3" placeholder="白米5kgの値段調査をネット情報から行えませんか？対象情報は過去５日間に売られている情報に限定してください。"></textarea>
+                                        <div class="form-text">入力がない場合はデフォルトの調査内容で実行されます</div>
+                                    </div>
+                                    
+                                    <!-- オプションタグ -->
+                                    <div class="option-tags mb-3">
+                                        <label class="form-label">追加オプション:</label>
+                                        <div>
+                                            <span class="badge rounded-pill bg-light text-dark option-tag" data-option="玄米も調査">玄米も調査</span>
+                                            <span class="badge rounded-pill bg-light text-dark option-tag" data-option="無洗米も調査">無洗米も調査</span>
+                                            <span class="badge rounded-pill bg-light text-dark option-tag" data-option="関税情報も詳しく">関税情報も詳しく</span>
+                                            <span class="badge rounded-pill bg-light text-dark option-tag" data-option="オーガニック・特別栽培米も">オーガニック・特別栽培米も</span>
+                                            <span class="badge rounded-pill bg-light text-dark option-tag" data-option="10kg単位の価格も">10kg単位の価格も</span>
+                                            <span class="badge rounded-pill bg-light text-dark option-tag" data-option="SNS情報も含める">SNS情報も含める</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary">調査開始</button>
+                                </form>
+                            </div>
+                            
+                            <!-- 追加質問タブ -->
+                            <div class="tab-pane fade" id="additional-questions" role="tabpanel" aria-labelledby="additional-questions-tab">
+                                <form id="additionalQuestionsForm">
+                                    <div class="mb-3">
+                                        <label for="additionalQuestionsInput" class="form-label">追加質問</label>
+                                        <textarea class="form-control" id="additionalQuestionsInput" rows="3" placeholder="カリフォルニア米の関税について詳しく教えてください。"></textarea>
+                                        <div class="form-text">質問は必須です</div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">質問する</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ローディングスピナー -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">調査中です。しばらくお待ちください...</p>
+        </div>
+
+        <!-- 調査結果 -->
+        <div class="survey-result" id="surveyResult">
+            <div class="alert alert-info" role="alert">
+                調査結果はここに表示されます。
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script>
+        // Azure Functions のURL（環境に合わせて変更してください）
+        const API_URL = 'https://pricesurvey.azurewebsites.net/api/riceSurvey';
+        
+        // デフォルトの調査内容
+        const DEFAULT_SURVEY_MESSAGE = "白米５kgの値段調査をネット情報から行ってください。対象情報は過去５日間に売られている情報に限定してください。売られている都道府県・市町村・販売社名・銘柄（コシヒカリ、ささにしき、カリフォルニア米等）が分かればそれも含め、テーブルで示してください。X等SNSの書き込み情報も調査対象に含めてください。価格は範囲ではなく、3,850円などと個別具体的な金額で示してください。";
+
+        // DOM要素を取得
+        const initialSurveyForm = document.getElementById('initialSurveyForm');
+        const additionalQuestionsForm = document.getElementById('additionalQuestionsForm');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const surveyResult = document.getElementById('surveyResult');
+        
+        // オプションタグの選択状態を管理
+        const optionTags = document.querySelectorAll('.option-tag');
+        const selectedOptions = new Set();
+        
+        // オプションタグのクリックイベント
+        optionTags.forEach(tag => {
+            tag.addEventListener('click', function() {
+                const option = this.getAttribute('data-option');
+                
+                if (selectedOptions.has(option)) {
+                    selectedOptions.delete(option);
+                    this.classList.remove('active');
+                } else {
+                    selectedOptions.add(option);
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        // 初期調査フォームの送信イベント
+        initialSurveyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // 入力されたメッセージまたはデフォルトメッセージを使用
+            let message = document.getElementById('initialSurveyInput').value.trim();
+            if (!message) {
+                message = DEFAULT_SURVEY_MESSAGE;
+            }
+            
+            // 選択されたオプションを追加
+            if (selectedOptions.size > 0) {
+                const optionsText = Array.from(selectedOptions).join('、');
+                message += `\n\n追加条件：${optionsText}`;
+            }
+            
+            await sendSurveyRequest(message, 'initial_survey');
+        });
+
+        // 追加質問フォームの送信イベント
+        additionalQuestionsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = document.getElementById('additionalQuestionsInput').value;
+            
+            // 入力が空の場合は処理を中止
+            if (!message.trim()) {
+                alert('質問を入力してください');
+                return;
+            }
+            
+            await sendSurveyRequest(message, 'additional_question');
+        });
+
+        // API リクエストを送信する関数
+        async function sendSurveyRequest(message, survey_type) {
+            // ローディング表示
+            loadingSpinner.style.display = 'block';
+            surveyResult.innerHTML = '';
+
+            try {
+                // API リクエスト
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message,
+                        survey_type
+                    })
+                });
+
+                // レスポンスの処理
+                if (!response.ok) {
+                    throw new Error(`エラーが発生しました: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // データのログ出力（デバッグ用）
+                console.log("APIレスポンス:", data);
+                console.log("レスポンスの型:", typeof data);
+                
+                // さまざまなレスポンス構造に対応するための処理
+                let responseText = '';
+                
+                // データの構造に応じて適切なテキストを抽出
+                if (data && data.success === true) {
+                    if (data.response) {
+                        // 1. 配列形式のレスポンス: [{content: "..."}, ...]
+                        if (Array.isArray(data.response) && data.response.length > 0) {
+                            const firstItem = data.response[0];
+                            if (firstItem.content) {
+                                responseText = firstItem.content;
+                            } else if (firstItem.text) {
+                                responseText = firstItem.text;
+                            } else {
+                                responseText = JSON.stringify(firstItem);
+                            }
+                        }
+                        // 2. オブジェクト形式のレスポンス: {type: "text", text: "..."}
+                        else if (typeof data.response === 'object' && data.response !== null) {
+                            if (data.response.text) {
+                                responseText = data.response.text;
+                            } else if (data.response.content) {
+                                responseText = data.response.content;
+                            } else {
+                                responseText = JSON.stringify(data.response);
+                            }
+                        }
+                        // 3. 文字列形式のレスポンス: "..."
+                        else if (typeof data.response === 'string') {
+                            responseText = data.response;
+                        }
+                        // 4. その他の形式
+                        else {
+                            responseText = JSON.stringify(data.response);
+                        }
+                    } else {
+                        responseText = "レスポンスにデータが含まれていません。";
+                    }
+                    
+                    // レスポンステキストが取得できた場合、HTMLに変換して表示
+                    if (responseText) {
+                        surveyResult.innerHTML = convertMarkdownToHtml(responseText);
+                    } else {
+                        surveyResult.innerHTML = `
+                            <div class="alert alert-warning">
+                                レスポンスから表示するテキストを抽出できませんでした。生データを表示します:
+                            </div>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        `;
+                    }
+                } else {
+                    // エラーまたは失敗レスポンスの場合
+                    surveyResult.innerHTML = `
+                        <div class="alert alert-warning">
+                            予期しないレスポンス形式を受信しました。生データを表示します:
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('API リクエストエラー:', error);
+                surveyResult.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        エラーが発生しました: ${error.message}
+                    </div>
+                `;
+            } finally {
+                // ローディング非表示
+                loadingSpinner.style.display = 'none';
+            }
+        }
+
+        // Markdown -> HTML変換関数の改良版
+        function convertMarkdownToHtml(markdown) {
+            // 入力チェック
+            if (markdown === null || markdown === undefined || typeof markdown !== 'string') {
+                console.error('convertMarkdownToHtmlエラー: 入力が文字列ではありません。入力タイプ:', typeof markdown);
+                return `<div class="alert alert-warning">形式が正しくないデータを受信しました。</div>
+                       <pre>${JSON.stringify(markdown, null, 2)}</pre>`;
+            }
+            
+            try {
+                // 一般的なパラグラフの処理（テーブル処理の前に行う）
+                let content = markdown;
+                
+                // 通常の段落を処理
+                const paragraphs = content.split(/\n\n+/);
+                let html = '';
+                
+                for (let i = 0; i < paragraphs.length; i++) {
+                    const paragraph = paragraphs[i].trim();
+                    
+                    // テーブルの検出
+                    if (paragraph.includes('|') && paragraph.includes('\n')) {
+                        html += processTable(paragraph);
+                    } 
+                    // 番号付きリスト
+                    else if (/^\d+\.\s/.test(paragraph)) {
+                        const items = paragraph.split(/\n/).filter(line => /^\d+\.\s/.test(line));
+                        html += '<ol>' + items.map(item => `<li>${item.replace(/^\d+\.\s/, '')}</li>`).join('') + '</ol>';
+                    }
+                    // 箇条書きリスト
+                    else if (paragraph.startsWith('* ') || paragraph.startsWith('- ')) {
+                        const items = paragraph.split(/\n/).filter(line => line.startsWith('* ') || line.startsWith('- '));
+                        html += '<ul>' + items.map(item => `<li>${item.substring(2)}</li>`).join('') + '</ul>';
+                    }
+                    // 見出し
+                    else if (paragraph.startsWith('# ')) {
+                        html += `<h3 class="mt-4 mb-3">${paragraph.substring(2)}</h3>`;
+                    }
+                    else if (paragraph.startsWith('## ')) {
+                        html += `<h4>${paragraph.substring(3)}</h4>`;
+                    }
+                    else if (paragraph.startsWith('### ')) {
+                        html += `<h5>${paragraph.substring(4)}</h5>`;
+                    }
+                    // 通常の段落
+                    else if (paragraph.trim()) {
+                        html += `<p>${paragraph}</p>`;
+                    }
+                }
+                
+                // 強調と斜体の処理
+                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                
+                // SNSの情報源の注釈を目立たせる
+                html = html.replace(/\((Twitter|X|Instagram|Facebook).*?\)/g, '<span class="source-info">($1情報)</span>');
+                
+                return html;
+            } catch (e) {
+                console.error('Markdown変換処理中のエラー:', e);
+                return `<div class="alert alert-danger">データの変換中にエラーが発生しました: ${e.message}</div>
+                       <pre>${markdown}</pre>`;
+            }
+        }
+        
+        // テーブル処理専用の関数
+        function processTable(tableText) {
+            try {
+                // テーブルの行を分割
+                const rows = tableText.split('\n').filter(row => row.trim());
+                
+                // ヘッダー行と区切り行を識別
+                const headerRow = rows[0];
+                let dataRowsStartIndex = 1;
+                
+                // 区切り行があれば無視
+                if (rows.length > 1 && rows[1].includes('-')) {
+                    dataRowsStartIndex = 2;
+                }
+                
+                // テーブルHTML構築
+                let tableHtml = '<div class="table-responsive"><table class="table table-striped table-bordered">';
+                
+                // ヘッダー行処理
+                if (headerRow.includes('|')) {
+                    const headerCells = headerRow.split('|')
+                        .map(cell => cell.trim())
+                        .filter(cell => cell.length > 0);
+                    
+                    tableHtml += '<thead><tr>';
+                    headerCells.forEach(cell => {
+                        tableHtml += `<th>${cell}</th>`;
+                    });
+                    tableHtml += '</tr></thead>';
+                }
+                
+                // データ行処理
+                tableHtml += '<tbody>';
+                for (let i = dataRowsStartIndex; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (row.includes('|')) {
+                        const cells = row.split('|')
+                            .map(cell => cell.trim())
+                            .filter(cell => cell.length > 0);
+                        
+                        tableHtml += '<tr>';
+                        cells.forEach(cell => {
+                            // SNSソースに特別なスタイルを適用
+                            if (/\((Twitter|X|Instagram|Facebook).*?\)/.test(cell)) {
+                                cell = cell.replace(/\((Twitter|X|Instagram|Facebook).*?\)/g, '<span class="source-info">($1情報)</span>');
+                            }
+                            tableHtml += `<td>${cell}</td>`;
+                        });
+                        tableHtml += '</tr>';
+                    }
+                }
+                tableHtml += '</tbody></table></div>';
+                
+                return tableHtml;
+            } catch (e) {
+                console.error('テーブル処理中のエラー:', e);
+                return `<div class="alert alert-warning">テーブルの処理中にエラーが発生しました。</div>
+                        <pre>${tableText}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>
