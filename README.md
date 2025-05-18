@@ -7,7 +7,7 @@
 
 あなたの街の価格情報をX：旧Twitter等にアップいただき情報がより信頼感をますようにしたいと思います。積極的なご協力をお願いします。
 
-![白米価格調査画面]([./onigiri.jpg](https://medicalhealth.blob.core.windows.net/medicalhealth/ogp.png))
+![白米価格調査画面]([https://medicalhealth.blob.core.windows.net/medicalhealth/ogp.png])
 
 ## 一般ユーザー向け説明
 
